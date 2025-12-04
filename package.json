@@ -1,0 +1,29 @@
+{
+  "name": "discord_bot_test",
+  "version": "1.0.0",
+  "description": "discord_bot_test",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/satonaka-chie9/discord_bot_test.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/satonaka-chie9/discord_bot_test/issues"
+  },
+  "homepage": "https://github.com/satonaka-chie9/discord_bot_test#readme",
+  "dependencies": {
+    "@huggingface/inference": "^4.13.2",
+    "discord.js": "^14.24.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "node-fetch": "^3.3.2",
+    "openai": "^6.8.1"
+  }
+}
