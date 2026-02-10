@@ -42,81 +42,14 @@ async function fetchWithTimeout(url, options = {}, ms = 8000) {
     }
 }
 
-// 文章類似度でテンプレートマッチ（Hugging Face sentence-similarity pipeline を使用）
-async function hfSimilarityMatch(userMessage, threshold = 0.75) {
-    const token = process.env.HUGGINGFACE_TOKEN;
-    if (!token) return null;
-
-    // 環境変数で URL を上書き可能（デフォルトはあなたの curl と同じパス）
-    const simUrl = process.env.HUGGINGFACE_SIM_URL ||
-        'https://router.huggingface.co/hf-inference/models/google/embeddinggemma-300m/pipeline/sentence-similarity';
-
-    // マッチ用テンプレート（必要に応じて拡張）
-    const templates = [
-        'こんにちは',
-        'おはよう',
-        'こんばんは',
-        'おやすみ',
-        'ありがとう',
-        '元気ですか',
-        '退屈',
-        '寂しい',
-        'ジョークを言って'
-    ];
-
-    try {
-        const res = await fetchWithTimeout(simUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                inputs: {
-                    source_sentence: userMessage,
-                    sentences: templates
-                }
-            })
-        }, 8000);
-
-        if (!res.ok) {
-            console.warn('hfSimilarityMatch status:', res.status);
-            return null;
-        }
-
-        const data = await res.json();
-        // レスポンスのスコア配列を柔軟に取得
-        const scores = data?.scores ?? data?.[0]?.scores ?? null;
-        if (!Array.isArray(scores)) return null;
-
-        // 最大スコアを探す
-        let maxIdx = 0;
-        for (let i = 1; i < scores.length; i++) {
-            if (scores[i] > scores[maxIdx]) maxIdx = i;
-        }
-        if (scores[maxIdx] >= threshold) {
-            // マッチしたテンプレートを使って簡易応答（getSimpleResponse を再利用）
-            return getSimpleResponse(templates[maxIdx]);
-        }
-        return null;
-    } catch (err) {
-        console.debug('hfSimilarityMatch error:', err?.message || err);
-        return null;
-    }
-}
-
-// Hugging Face のみで応答を生成（フォールバックはキーワード応答）
+// Hugging Face API のみで応答を生成
 async function generateResponse(userMessage) {
-    const simReply = await hfSimilarityMatch(userMessage);
-    if (simReply) return simReply;
-
     const hf = await tryHuggingFace(userMessage);
     if (hf) return hf;
 
-    return getSimpleResponse(userMessage || '');
+    // Hugging Face が利用できない場合
+    return '申し訳ございません。現在返答できません。しばらく経ってからお試しください。';
 }
-
-// ⚠️ One API と Ollama は使用しません
 
 // Hugging Face API を呼ぶ（HUGGINGFACE_TOKEN 必須）
 async function tryHuggingFace(userMessage) {
