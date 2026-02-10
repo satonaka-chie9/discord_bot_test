@@ -116,6 +116,8 @@ async function generateResponse(userMessage) {
     return getSimpleResponse(userMessage || '');
 }
 
+// ⚠️ One API と Ollama は使用しません
+
 // Hugging Face API を呼ぶ（HUGGINGFACE_TOKEN 必須）
 async function tryHuggingFace(userMessage) {
     const token = process.env.HUGGINGFACE_TOKEN;
@@ -126,7 +128,9 @@ async function tryHuggingFace(userMessage) {
 
     const model = process.env.HUGGINGFACE_MODEL || 'openai/gpt-oss-20b:groq';
     const url = process.env.HUGGINGFACE_CHAT_URL || 'https://router.huggingface.co/v1/chat/completions';
-    const systemPrompt = process.env.HF_SYSTEM_PROMPT || 'You are a helpful assistant. Answer concisely in Japanese.';
+    const systemPrompt = process.env.HF_SYSTEM_PROMPT || `あなたは親切で礼儀正しい日本語アシスタントです。
+ユーザーの質問に対して、簡潔で分かりやすく、親切に答えてください。
+可能な限り日本語で返答してください。`;
 
     try {
         const body = {
@@ -177,80 +181,7 @@ async function tryHuggingFace(userMessage) {
     }
 }
 
-// One API を試す（任意。環境変数 ONE_API_URL / ONE_API_KEY を設定した場合のみ使用）
-async function tryOneAPI(userMessage) {
-    const ONE_URL = process.env.ONE_API_URL;
-    const ONE_KEY = process.env.ONE_API_KEY;
-    if (!ONE_URL || !ONE_KEY) return null;
-
-    try {
-        const res = await fetch(ONE_URL, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${ONE_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'gpt-3.5-turbo',
-                messages: [
-                    { role: 'system', content: 'あなたは親切で礼儀正しい日本語アシスタントです。簡潔に答えてください。' },
-                    { role: 'user', content: userMessage }
-                ],
-                max_tokens: 150,
-                temperature: 0.7
-            })
-        });
-
-        if (!res.ok) {
-            console.error('tryOneAPI non-ok status:', res.status);
-            return null;
-        }
-
-        const data = await res.json();
-        return data?.choices?.[0]?.message?.content?.trim() || null;
-    } catch (err) {
-        console.error('tryOneAPI exception:', err.message);
-        return null;
-    }
-}
-
-// Ollama（ローカルAI）を試す（localhost が動作しているとき）
-async function tryOllama(userMessage) {
-    // Ollama はインストール時のエンドポイントが環境で異なるので複数パスを試す
-    const endpoints = [
-        process.env.OLLAMA_URL || 'http://localhost:11434/api/generate',
-        process.env.OLLAMA_URL || 'http://localhost:11434/v1/generate'
-    ];
-
-    for (const url of endpoints) {
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: 'neural-chat',
-                    prompt: userMessage,
-                    stream: false
-                })
-            });
-
-            if (!res.ok) {
-                console.debug('tryOllama non-ok', url, res.status);
-                continue;
-            }
-
-            const data = await res.json();
-            // Ollama の応答構造はバージョン差があるため柔軟に処理
-            if (data?.response) return String(data.response).trim();
-            if (data?.results?.[0]?.output) return String(data.results[0].output).trim();
-            if (data?.generated_text) return String(data.generated_text).trim();
-        } catch (err) {
-            console.debug('tryOllama error for', url, err.message);
-            continue;
-        }
-    }
-    return null;
-}
+// ⚠️ One API は使用しません（非推奨）
 
 // シンプルなキーワード応答を大幅に拡張
 function getSimpleResponse(message) {
